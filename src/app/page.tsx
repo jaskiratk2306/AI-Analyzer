@@ -16,23 +16,25 @@ export default function Home() {
   const { theme, toggleTheme } = useTheme();
   const router = useRouter();
 
+  const refreshSession = async () => {
+    try {
+      const res = await fetch("/api/auth/session", { method: "POST" });
+      const data = await res.json();
+      setSession(data.user);
+    } catch {
+      setSession(null);
+    }
+  };
+
   useEffect(() => {
     let isActive = true;
 
-    fetch("/api/auth/session", {
-      method: "POST",
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (isActive) {
-          setSession(data.user);
-        }
-      })
-      .catch(() => {
-        if (isActive) {
-          setSession(null);
-        }
-      });
+    const loadSession = async () => {
+      if (!isActive) return;
+      await refreshSession();
+    };
+
+    loadSession();
 
     return () => {
       isActive = false;
@@ -67,11 +69,23 @@ export default function Home() {
 
       const data = await res.json();
 
-      if (!res.ok || data.error) {
+      if (!res.ok) {
+        if (res.status === 403) {
+          setLimitMessage(data.error || "You have reached your 3-search free limit. Upgrade to unlock unlimited searches.");
+          await refreshSession();
+          setResult(null);
+          return;
+        }
+
+        throw new Error(data.error || "Failed to fetch research data");
+      }
+
+      if (data.error) {
         throw new Error(data.error || "Failed to fetch research data");
       }
 
       setResult(data);
+      await refreshSession();
     } catch (err: any) {
       setError(err.message);
     } finally {
