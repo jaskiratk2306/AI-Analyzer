@@ -34,8 +34,8 @@ export default function LoginPage() {
   }
 
   return (
-    <main style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: "2rem" }}>
-      <div className="card" style={{ width: "100%", maxWidth: "460px" }}>
+    <main className="page-shell auth-shell">
+      <div className="card auth-card">
         <div className="surface-pill" style={{ marginBottom: "1rem" }}>
           <ShieldCheck size={16} /> Secure login
         </div>
@@ -48,6 +48,7 @@ export default function LoginPage() {
             type="email"
             placeholder="Email"
             required
+            className="input-field"
             style={inputStyle}
           />
           <div style={{ position: "relative" }}>
@@ -57,6 +58,7 @@ export default function LoginPage() {
               type={showPassword ? "text" : "password"}
               placeholder="Password"
               required
+              className="input-field"
               style={{ ...inputStyle, paddingRight: "3rem" }}
             />
             <button
@@ -81,8 +83,8 @@ export default function LoginPage() {
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
-  padding: "0.9rem 1rem",
-  borderRadius: "0.65rem",
+  padding: "0.95rem 1rem",
+  borderRadius: "0.8rem",
   border: "1px solid var(--border-color)",
   backgroundColor: "var(--bg-primary)",
   color: "var(--text-primary)",

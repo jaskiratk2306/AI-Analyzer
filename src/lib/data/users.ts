@@ -13,8 +13,29 @@ type SessionRecord = {
   expiresAt: number;
 };
 
-const users = new Map<string, UserRecord>();
-const sessions = new Map<string, SessionRecord>();
+type AuthStore = {
+  users: Map<string, UserRecord>;
+  sessions: Map<string, SessionRecord>;
+};
+
+type GlobalWithAuthStore = typeof globalThis & {
+  __aiAnalyzerAuthStore?: AuthStore;
+};
+
+function getAuthStore(): AuthStore {
+  const globalScope = globalThis as GlobalWithAuthStore;
+  if (!globalScope.__aiAnalyzerAuthStore) {
+    globalScope.__aiAnalyzerAuthStore = {
+      users: new Map<string, UserRecord>(),
+      sessions: new Map<string, SessionRecord>(),
+    };
+  }
+  return globalScope.__aiAnalyzerAuthStore;
+}
+
+const authStore = getAuthStore();
+const users = authStore.users;
+const sessions = authStore.sessions;
 
 export function createUser(email: string, password: string, name: string) {
   if (users.has(email.toLowerCase())) return null;

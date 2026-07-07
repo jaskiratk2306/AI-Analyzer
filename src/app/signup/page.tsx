@@ -35,18 +35,18 @@ export default function SignupPage() {
   }
 
   return (
-    <main style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: "2rem" }}>
-      <div className="card" style={{ width: "100%", maxWidth: "460px" }}>
+    <main className="page-shell auth-shell">
+      <div className="card auth-card">
         <div className="surface-pill" style={{ marginBottom: "1rem" }}>
           <Sparkles size={16} /> Start free
         </div>
         <h1 style={{ fontSize: "1.75rem" }}>Create your account</h1>
         <p style={{ color: "var(--text-secondary)", marginBottom: "1.5rem" }}>Join the premium research workspace and unlock smarter company analysis.</p>
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" required style={inputStyle} />
-          <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="Email" required style={inputStyle} />
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" required className="input-field" style={inputStyle} />
+          <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="Email" required className="input-field" style={inputStyle} />
           <div style={{ position: "relative" }}>
-            <input value={password} onChange={(e) => setPassword(e.target.value)} type={showPassword ? "text" : "password"} placeholder="Password" required style={{ ...inputStyle, paddingRight: "3rem" }} />
+            <input value={password} onChange={(e) => setPassword(e.target.value)} type={showPassword ? "text" : "password"} placeholder="Password" required className="input-field" style={{ ...inputStyle, paddingRight: "3rem" }} />
             <button
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
@@ -69,8 +69,8 @@ export default function SignupPage() {
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
-  padding: "0.9rem 1rem",
-  borderRadius: "0.65rem",
+  padding: "0.95rem 1rem",
+  borderRadius: "0.8rem",
   border: "1px solid var(--border-color)",
   backgroundColor: "var(--bg-primary)",
   color: "var(--text-primary)",

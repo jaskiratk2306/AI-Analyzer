@@ -101,8 +101,8 @@ export default function Home() {
   };
 
   return (
-    <main style={{ padding: "2rem", maxWidth: "920px", margin: "0 auto" }}>
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem", gap: "1rem", flexWrap: "wrap" }}>
+    <main className="page-shell">
+      <header className="hero-card" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0", gap: "1rem", flexWrap: "wrap" }}>
         <div>
           <div className="surface-pill" style={{ marginBottom: "0.75rem" }}>
             <Sparkles size={16} /> AI research cockpit
@@ -111,7 +111,7 @@ export default function Home() {
             InvestAI
           </h1>
           <p style={{ color: "var(--text-secondary)", maxWidth: "560px" }}>Elevated company intelligence with secure access, smart search limits, and a premium analysis experience.</p>
-          {session ? <p style={{ marginTop: "0.45rem", color: "var(--text-secondary)" }}>Signed in as {session.email}</p> : <p style={{ marginTop: "0.45rem", color: "var(--text-secondary)" }}>Sign in to unlock research and usage tracking.</p>}
+          {session ? <p className="status-chip" style={{ marginTop: "0.6rem" }}>Signed in as {session.email}</p> : <p style={{ marginTop: "0.45rem", color: "var(--text-secondary)" }}>Sign in to unlock research and usage tracking.</p>}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
           <button 
