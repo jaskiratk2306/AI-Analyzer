@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "fs";
 import path from "path";
 
 type UserRecord = {
@@ -45,7 +45,9 @@ function loadStore(): AuthStore {
 
 function saveStore(store: AuthStore) {
   ensureStoreFile();
-  writeFileSync(STORE_FILE, JSON.stringify(store, null, 2));
+  const tempFile = `${STORE_FILE}.tmp`;
+  writeFileSync(tempFile, JSON.stringify(store, null, 2));
+  renameSync(tempFile, STORE_FILE);
 }
 
 export function createUser(email: string, password: string, name: string) {

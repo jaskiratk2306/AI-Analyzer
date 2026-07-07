@@ -26,7 +26,8 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ ok: true, user: { email: user.email, name: user.name, isSubscriber: user.isSubscriber, searchCount: user.searchCount } });
-  } catch {
+  } catch (error) {
+    console.error("signup error", error);
     return NextResponse.json({ error: "Unable to create account." }, { status: 500 });
   }
 }

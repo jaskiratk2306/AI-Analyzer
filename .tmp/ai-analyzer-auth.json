@@ -1,0 +1,28 @@
+{
+  "users": {
+    "verify-count@example.com": {
+      "email": "verify-count@example.com",
+      "password": "password123",
+      "name": "Verify Count",
+      "isSubscriber": false,
+      "searchCount": 1
+    },
+    "meet@lpu.com": {
+      "email": "meet@lpu.com",
+      "password": "meet@1234",
+      "name": "jasmeet",
+      "isSubscriber": false,
+      "searchCount": 3
+    }
+  },
+  "sessions": {
+    "31af43a7-d1b6-4a50-bd82-9e4ab729808c": {
+      "email": "verify-count@example.com",
+      "expiresAt": 1784056152327
+    },
+    "37d1904a-41b4-46db-bd37-7bae1f270494": {
+      "email": "meet@lpu.com",
+      "expiresAt": 1784056665884
+    }
+  }
+}

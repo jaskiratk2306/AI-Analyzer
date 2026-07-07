@@ -30,7 +30,7 @@ export default function SignupPage() {
     }
 
     localStorage.setItem("ai-analyzer-user", data.user.email);
-    router.push("/");
+    router.push(`/?signedIn=${encodeURIComponent(data.user.email)}`);
     router.refresh();
   }
 
