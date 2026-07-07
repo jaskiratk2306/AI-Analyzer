@@ -41,6 +41,9 @@ export default function Home() {
     };
   }, []);
 
+  const isLimitReached = !session?.isSubscriber && (session?.searchCount ?? 0) >= 3;
+  const remainingSearches = Math.max(0, 3 - (session?.searchCount ?? 0));
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!companyName.trim()) return;
@@ -50,7 +53,7 @@ export default function Home() {
       return;
     }
 
-    if (!session.isSubscriber && session.searchCount >= 3) {
+    if (isLimitReached) {
       setLimitMessage("You have reached your 3-search free limit. Upgrade to unlock unlimited searches.");
       return;
     }
@@ -151,7 +154,7 @@ export default function Home() {
           <div>
             <h2 style={{ marginBottom: "0.25rem" }}>Research workspace</h2>
             <p style={{ color: "var(--text-secondary)" }}>
-              {session?.isSubscriber ? "Unlimited searches unlocked." : `Free searches remaining: ${Math.max(0, 3 - (session?.searchCount ?? 0))}`}
+              {session?.isSubscriber ? "Unlimited searches unlocked." : `Free searches remaining: ${remainingSearches}`}
             </p>
           </div>
           {!session?.isSubscriber && session ? <button className="btn btn-primary" onClick={() => router.push("/pricing")}>Upgrade</button> : null}
@@ -166,7 +169,7 @@ export default function Home() {
               type="text"
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
-              placeholder="Enter a company name (e.g. Apple, Tesla)"
+              placeholder={isLimitReached ? "Free searches are exhausted" : "Enter a company name (e.g. Apple, Tesla)"}
               style={{
                 width: "100%",
                 padding: "1rem 1rem 1rem 3rem",
@@ -177,18 +180,29 @@ export default function Home() {
                 fontSize: "1rem",
                 outline: "none"
               }}
-              disabled={isLoading}
+              disabled={isLoading || isLimitReached}
             />
           </div>
-          <button type="submit" className="btn btn-primary" disabled={isLoading || !companyName.trim()}>
+          <button type="submit" className="btn btn-primary" disabled={isLoading || !companyName.trim() || isLimitReached}>
             {isLoading ? <Loader2 size={20} className="spinner" style={{ animation: "spin 2s linear infinite" }} /> : "Research"}
           </button>
         </form>
       </div>
 
       {limitMessage && (
-        <div className="card" style={{ borderLeft: "4px solid var(--color-yellow)", backgroundColor: "rgba(240, 206, 89, 0.12)", marginBottom: "1rem" }}>
+        <div className="card" style={{ borderLeft: "4px solid var(--accent-primary)", backgroundColor: "rgba(135, 61, 36, 0.08)", marginBottom: "1rem" }}>
           <p style={{ margin: 0 }}>{limitMessage}</p>
+        </div>
+      )}
+
+      {isLimitReached && (
+        <div className="card" style={{ border: "1px solid var(--accent-primary)", background: "linear-gradient(135deg, rgba(135, 61, 36, 0.12), rgba(17, 29, 45, 0.04))" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", color: "var(--accent-primary)", fontWeight: 700, marginBottom: "0.5rem" }}>
+            <Sparkles size={18} /> Upgrade to Pro
+          </div>
+          <h3 style={{ marginBottom: "0.45rem" }}>Unlock unlimited research</h3>
+          <p style={{ color: "var(--text-secondary)", marginBottom: "1rem" }}>Get unlimited searches, deeper analysis, saved history, and priority workflows with InvestAI Pro.</p>
+          <button className="btn btn-primary" onClick={() => router.push("/pricing")}>Upgrade to Pro</button>
         </div>
       )}
 

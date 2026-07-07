@@ -1,80 +1,113 @@
 import "dotenv/config";
-import { ChatGroq } from "@langchain/groq";
 import { AgentStateType } from "./state";
 import { getCompanyTicker, getFinancialData, getCompanyNews } from "./tools";
 
-function getGroqApiKey() {
-  return process.env.GROQ_API_KEY?.trim();
+function formatLargeNumber(value: number) {
+  if (value >= 1e12) return `${(value / 1e12).toFixed(2)}T`;
+  if (value >= 1e9) return `${(value / 1e9).toFixed(2)}B`;
+  if (value >= 1e6) return `${(value / 1e6).toFixed(2)}M`;
+  return value.toLocaleString();
 }
 
-// Lazy-initialize LLM so env vars are read at call time, not at import time
-function getLLM() {
-  return new ChatGroq({
-    model: "llama-3.1-8b-instant", // Fast, free tier on Groq
-    temperature: 0.2,
-    apiKey: getGroqApiKey(),
-  });
+function scoreDataCompleteness(financialData: AgentStateType["financialData"]) {
+  let score = 0;
+  if (typeof financialData?.price === "number") score += 16;
+  if (typeof financialData?.marketCap === "number") score += 20;
+  if (typeof financialData?.trailingPE === "number") score += 16;
+  if (typeof financialData?.revenueGrowth === "number") score += 20;
+  if (typeof financialData?.profitMargins === "number") score += 16;
+  if (financialData?.industry && financialData?.sector) score += 12;
+  return Math.min(100, score);
 }
 
-function buildFallbackAnalysis(state: AgentStateType) {
+function buildGroundedAnalysis(state: AgentStateType) {
   const financialData = state.financialData;
+  const revenueGrowth = typeof financialData?.revenueGrowth === "number" ? financialData.revenueGrowth * 100 : null;
+  const profitMargins = typeof financialData?.profitMargins === "number" ? financialData.profitMargins * 100 : null;
+  const trailingPE = typeof financialData?.trailingPE === "number" ? financialData.trailingPE : null;
+  const marketCap = typeof financialData?.marketCap === "number" ? financialData.marketCap : null;
+  const qualityScore = scoreDataCompleteness(financialData);
+
   const growthSignals: string[] = [];
   const riskFactors: string[] = [];
 
-  if ((financialData?.revenueGrowth ?? 0) > 0.05) {
-    growthSignals.push("Revenue growth is positive, which is a constructive sign for the business.");
+  if (revenueGrowth !== null) {
+    growthSignals.push(`Revenue growth is ${revenueGrowth.toFixed(2)}% on the reported period.`);
   } else {
-    growthSignals.push("Revenue growth data is limited or flat, so growth should be monitored closely.");
+    riskFactors.push("Revenue growth data was not available, so momentum is uncertain.");
   }
 
-  if ((financialData?.profitMargins ?? 0) > 0.1) {
-    growthSignals.push("Profit margins appear healthy, suggesting operational efficiency.");
+  if (profitMargins !== null) {
+    growthSignals.push(`Operating margin is ${profitMargins.toFixed(2)}%, suggesting ${profitMargins > 10 ? "healthy" : "mixed"} profitability.`);
+  } else {
+    riskFactors.push("Profit margin data was not available, limiting profitability context.");
   }
 
-  if (financialData?.marketCap && financialData.marketCap > 1e9) {
-    growthSignals.push("The company has meaningful scale, which can support resilience.");
+  if (marketCap !== null) {
+    growthSignals.push(`Market capitalization is ${formatLargeNumber(marketCap)}.`);
   }
 
-  if ((financialData?.trailingPE ?? 0) <= 0 || (financialData?.trailingPE ?? 0) > 40) {
-    riskFactors.push("The valuation is either not available or appears stretched relative to typical expectations.");
+  if (trailingPE !== null) {
+    if (trailingPE > 0 && trailingPE < 30) {
+      growthSignals.push(`The P/E ratio of ${trailingPE.toFixed(2)} looks comparatively reasonable.`);
+    } else {
+      riskFactors.push(`The P/E ratio of ${trailingPE.toFixed(2)} appears stretched or not meaningful for this context.`);
+    }
+  } else {
+    riskFactors.push("Valuation data was unavailable, so the entry price is harder to assess.");
   }
 
-  if ((financialData?.revenueGrowth ?? 0) < 0) {
-    riskFactors.push("Recent revenue momentum is negative, which may reflect business pressure.");
+  if (qualityScore < 70) {
+    riskFactors.push("Some core financial metrics are missing, so confidence is intentionally capped.");
   }
 
-  if (!financialData?.industry || !financialData?.sector) {
-    riskFactors.push("Sector and industry context are incomplete, limiting confidence in the assessment.");
-  }
+  const overallSentiment = qualityScore >= 70
+    ? "The analysis is grounded in live financial metrics and reflects the company’s current reported health rather than a generic narrative."
+    : "The analysis is only partially grounded because some financial metrics were unavailable; the recommendation should be treated cautiously.";
 
   return {
-    growthSignals: growthSignals.length > 0 ? growthSignals : ["The available data is too limited to highlight strong growth signals."],
-    riskFactors: riskFactors.length > 0 ? riskFactors : ["The available data does not show obvious risk concerns."],
-    overallSentiment: `The company appears to have ${((financialData?.revenueGrowth ?? 0) > 0 ? "positive" : "mixed")} momentum based on the available financial indicators. A fuller analysis would be possible with a Groq API key and richer market context.`,
+    growthSignals: growthSignals.length > 0 ? growthSignals : ["No growth signals were available from the financial feed."],
+    riskFactors: riskFactors.length > 0 ? riskFactors : ["No major risks were surfaced from the available dataset."],
+    overallSentiment,
+    dataSource: "Yahoo Finance via yahoo-finance2",
+    generatedAt: new Date().toISOString(),
+    dataQualityScore: qualityScore,
+    disclaimer: "AI-generated analysis only. Not financial advice. Figures are derived from the latest available financial data source and should be verified independently.",
   };
 }
 
-function buildFallbackDecision(state: AgentStateType) {
+function buildGroundedDecision(state: AgentStateType) {
   const financialData = state.financialData;
-  const revenueGrowth = financialData?.revenueGrowth ?? 0;
-  const profitMargins = financialData?.profitMargins ?? 0;
-  const trailingPE = financialData?.trailingPE ?? 0;
+  const revenueGrowth = typeof financialData?.revenueGrowth === "number" ? financialData.revenueGrowth : 0;
+  const profitMargins = typeof financialData?.profitMargins === "number" ? financialData.profitMargins : 0;
+  const trailingPE = typeof financialData?.trailingPE === "number" ? financialData.trailingPE : 0;
+  const qualityScore = scoreDataCompleteness(financialData);
 
-  const isHealthyGrowth = revenueGrowth > 0.05;
-  const isHealthyMargin = profitMargins > 0.1;
-  const isReasonableValuation = trailingPE > 0 && trailingPE < 40;
+  const hasSolidGrowth = revenueGrowth > 0.05;
+  const hasHealthyMargins = profitMargins > 0.1;
+  const hasReasonableValuation = trailingPE > 0 && trailingPE < 30;
+  const qualitySignals = [hasSolidGrowth, hasHealthyMargins, hasReasonableValuation].filter(Boolean).length;
 
-  const verdict: "Invest" | "Pass" = isHealthyGrowth && isHealthyMargin && isReasonableValuation ? "Invest" : "Pass";
-  const confidence = Math.min(90, 55 + Number(isHealthyGrowth) * 12 + Number(isHealthyMargin) * 10 + Number(isReasonableValuation) * 8);
+  let verdict: "Invest" | "Hold" | "Avoid" = "Hold";
+  if (qualityScore >= 80 && hasSolidGrowth && hasHealthyMargins && hasReasonableValuation) {
+    verdict = "Invest";
+  } else if (qualityScore < 60 || (!hasSolidGrowth && !hasHealthyMargins)) {
+    verdict = "Avoid";
+  }
+
+  const confidence = Math.min(95, Math.max(25, Math.round(qualityScore * 0.45 + qualitySignals * 12)));
+
+  const reasoning = [
+    revenueGrowth > 0 ? `Revenue growth is positive at ${(revenueGrowth * 100).toFixed(2)}%.` : "Revenue growth is flat or negative.",
+    profitMargins > 0.1 ? `Profit margins are ${Math.round(profitMargins * 100)}% and support the view.` : "Profit margins are weak or unavailable.",
+    trailingPE > 0 ? `The valuation metric is ${trailingPE.toFixed(2)}.` : "Valuation data is unavailable.",
+    `Data quality score: ${qualityScore}/100 from the live financial feed.`,
+  ];
 
   return {
     verdict,
     confidence,
-    reasoning: [
-      isHealthyGrowth ? "Revenue growth is positive." : "Revenue growth is weak or unavailable.",
-      isHealthyMargin ? "Profit margins look supportive." : "Profit margins are not clearly supportive.",
-      isReasonableValuation ? "The valuation looks reasonable enough for a cautious entry." : "The valuation looks less attractive or is unclear.",
-    ],
+    reasoning,
   };
 }
 
@@ -111,34 +144,8 @@ export async function analyzeData(state: AgentStateType): Promise<Partial<AgentS
     return {};
   }
 
-  const prompt = `You are an expert financial analyst. Analyze the following data for a company.
-
-Financial Data:
-${JSON.stringify(state.financialData, null, 2)}
-
-Recent News:
-${JSON.stringify(state.newsData, null, 2)}
-
-Provide a structured analysis. Respond ONLY with a raw JSON object (no markdown, no code fences), like this exact format:
-{"growthSignals":["signal 1","signal 2","signal 3"],"riskFactors":["risk 1","risk 2","risk 3"],"overallSentiment":"A paragraph summarizing the overall market sentiment."}`;
-
   try {
-    if (!getGroqApiKey()) {
-      return { analysis: buildFallbackAnalysis(state) };
-    }
-
-    const llm = getLLM();
-    const response = await llm.invoke(prompt);
-    let content = response.content as string;
-    
-    // Strip any markdown code fences if present
-    content = content.replace(/^```(?:json)?\s*/m, "").replace(/```\s*$/m, "").trim();
-    // Extract just the JSON object
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("No JSON object found in LLM response");
-
-    const analysis = JSON.parse(jsonMatch[0]);
-    return { analysis };
+    return { analysis: buildGroundedAnalysis(state) };
   } catch (error: any) {
     return { error: `Failed to analyze data: ${error.message}` };
   }
@@ -149,37 +156,8 @@ export async function makeDecision(state: AgentStateType): Promise<Partial<Agent
     return {};
   }
 
-  const prompt = `You are a senior investment committee member making a final call on a company.
-
-Company: ${state.companyName}
-
-Analysis:
-${JSON.stringify(state.analysis, null, 2)}
-
-Key Financials: Price=$${state.financialData?.price?.toFixed(2)}, MarketCap=$${state.financialData?.marketCap}, P/E=${state.financialData?.trailingPE?.toFixed(1)}, RevenueGrowth=${state.financialData?.revenueGrowth ? (state.financialData.revenueGrowth * 100).toFixed(1) + '%' : 'N/A'}
-
-Make a final investment decision. Respond ONLY with a raw JSON object (no markdown, no code fences), like this exact format:
-{"verdict":"Invest","confidence":75,"reasoning":["Reason 1 here","Reason 2 here","Reason 3 here"]}
-
-verdict must be exactly "Invest" or "Pass". confidence is a number 0-100.`;
-
   try {
-    if (!getGroqApiKey()) {
-      return { decision: buildFallbackDecision(state) };
-    }
-
-    const llm = getLLM();
-    const response = await llm.invoke(prompt);
-    let content = response.content as string;
-    
-    // Strip any markdown code fences
-    content = content.replace(/^```(?:json)?\s*/m, "").replace(/```\s*$/m, "").trim();
-    // Extract just the JSON object
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("No JSON object found in LLM response");
-
-    const decision = JSON.parse(jsonMatch[0]);
-    return { decision };
+    return { decision: buildGroundedDecision(state) };
   } catch (error: any) {
     return { error: `Failed to make decision: ${error.message}` };
   }

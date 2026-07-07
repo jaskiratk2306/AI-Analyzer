@@ -8,9 +8,13 @@ export const AgentState = Annotation.Root({
     growthSignals: string[];
     riskFactors: string[];
     overallSentiment: string;
+    dataSource: string;
+    generatedAt: string;
+    dataQualityScore: number;
+    disclaimer: string;
   } | null>(),
   decision: Annotation<{
-    verdict: "Invest" | "Pass";
+    verdict: "Invest" | "Hold" | "Avoid";
     confidence: number;
     reasoning: string[];
   } | null>(),
