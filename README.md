@@ -11,7 +11,7 @@ The AI Investment Research Agent takes a company name as input, runs it through 
 - 📊 Live financial data (price, market cap, P/E ratio, revenue growth)
 - 📰 Recent news headlines
 - 🧠 AI-synthesized growth signals & risk factors
-- ✅ A final **Invest** or **Pass** verdict with confidence score & reasoning
+-  A final **Invest** or **Pass** verdict with confidence score & reasoning
 
 Built as a take-home assignment demonstrating production-quality full-stack AI development.
 
