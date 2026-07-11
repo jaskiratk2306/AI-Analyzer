@@ -151,6 +151,7 @@ npx vercel
 # Add GROQ_API_KEY in Vercel dashboard → Settings → Environment Variables
 ```
 
+DEPOLYMENT_LINK - https://ai-analyzer-nine-cyan.vercel.app/
 ---
 
 ## Example Runs
